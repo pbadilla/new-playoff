@@ -1,0 +1,1 @@
+{"name":"@club/api","type":"module","scripts":{"dev":"tsx watch src/index.ts","build":"tsc -p tsconfig.json --noEmit false --outDir dist","typecheck":"tsc -p tsconfig.json"},"dependencies":{"@club/database":"workspace:*","@club/schemas":"workspace:*","@fastify/cors":"^11.1.0","fastify":"^5.6.0","drizzle-orm":"^0.44.5"},"devDependencies":{"tsx":"^4.20.5","typescript":"^5.9.2"}}
