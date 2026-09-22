@@ -1,1 +1,1 @@
-console.log('Club Platform worker ready. Add pg-boss/BullMQ jobs here.');
+console.log('PlayPlayRG360 worker ready. Add persistent queue jobs here.');

@@ -1,4 +1,17 @@
-import React from 'react'; import {createRoot} from 'react-dom/client'; import {QueryClient,QueryClientProvider,useQuery} from '@tanstack/react-query'; import './styles.css';
-const qc=new QueryClient();
-function App(){ const q=useQuery({queryKey:['health'],queryFn:()=>fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}/health`).then(r=>r.json())}); return <main><p className="eyebrow">CLUB PLATFORM</p><h1>Boilerplate SaaS para clubes</h1><p>React 19 · Vite · Fastify · Supabase · PostgreSQL · Drizzle</p><section><strong>API</strong><span>{q.isSuccess?' conectada':' comprobando…'}</span></section><h2>Módulos iniciales</h2><div className="grid">{['Organizaciones','Temporadas','Socios','Familias','Equipos','Inscripciones'].map(x=><article key={x}>{x}</article>)}</div></main>}
-createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={qc}><App/></QueryClientProvider></React.StrictMode>);
+import React from 'react'
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createRoot } from 'react-dom/client'
+
+import { Dashboard } from './components/dashboard'
+import { ThemeProvider } from './components/theme-provider'
+
+import './styles.css'
+const qc=new QueryClient()
+createRoot(document.getElementById('root')!).render(<React.StrictMode>
+<QueryClientProvider client={qc}>
+<ThemeProvider>
+<Dashboard/>
+</ThemeProvider>
+</QueryClientProvider>
+</React.StrictMode>)
