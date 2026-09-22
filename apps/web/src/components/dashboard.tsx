@@ -29,7 +29,9 @@ import {
 import { AnimatePresence, motion } from 'motion/react'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 
+import { ActivitiesPage } from '../features/activities/activities-page'
 import { CommunicationPage } from '../features/communication/communication-page'
+import { FinancePage } from '../features/finance/finance-page'
 import { SchoolsPage } from '../features/schools/schools-page'
 import { StudentsPage } from '../features/students/students-page'
 import { TeachersPage } from '../features/teachers/teachers-page'
@@ -480,7 +482,7 @@ className="grid w-full grid-cols-[88px_1fr_auto] items-center gap-3 px-4 py-3 te
             </div>
           </Card>
         </section>
-        </> : active === 'Colegios' ? <SchoolsPage /> : active === 'Profesores' ? <TeachersPage /> : active === 'Alumnos' ? <StudentsPage /> : active === 'Comunicación' ? <CommunicationPage /> : <ComingSoon section={active} />}
+        </> : active === 'Colegios' ? <SchoolsPage /> : active === 'Profesores' ? <TeachersPage /> : active === 'Alumnos' ? <StudentsPage /> : active === 'Comunicación' ? <CommunicationPage /> : active === 'Actividades' ? <ActivitiesPage /> : active === 'Finanzas' ? <FinancePage /> : <ComingSoon section={active} />}
       </main>
 
       <AnimatePresence>

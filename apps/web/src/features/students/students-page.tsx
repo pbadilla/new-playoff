@@ -1,16 +1,19 @@
 import { type FormEvent,useDeferredValue, useState } from 'react'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, School, UserRound } from 'lucide-react'
+import { ContactRound, Pencil, School, UserRound, WalletCards } from 'lucide-react'
 
 import { Card } from '../../components/ui/card'
 import { backofficeApi, type Student, type StudentStatus } from '../../lib/api'
 import { EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
 import { EditStudentDialog } from '../shared/edit-dialogs'
+import { StudentGuardiansDialog, StudentPaymentDialog } from './student-extra-dialogs'
 
 export function StudentsPage() {
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Student | null>(null)
+  const [paymentStudent, setPaymentStudent] = useState<Student | null>(null)
+  const [guardiansStudent, setGuardiansStudent] = useState<Student | null>(null)
   const [search, setSearch] = useState('')
   const [schoolId, setSchoolId] = useState('')
   const [status, setStatus] = useState<'' | StudentStatus>('')
@@ -31,7 +34,7 @@ export function StudentsPage() {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    mutation.mutate({ firstName: String(data.get('firstName')), lastName: String(data.get('lastName')), schoolId: String(data.get('schoolId')), birthDate: String(data.get('birthDate') || '') || undefined, notes: String(data.get('notes') || '') || undefined, foodIntolerances: String(data.get('foodIntolerances') || '').split(',').map((item) => item.trim()).filter(Boolean), status: data.get('status') as StudentStatus })
+    mutation.mutate({ firstName: String(data.get('firstName')), lastName: String(data.get('lastName')), schoolId: String(data.get('schoolId')), birthDate: String(data.get('birthDate') || '') || undefined, notes: String(data.get('notes') || '') || undefined, foodIntolerances: String(data.get('foodIntolerances') || '').split(',').map((item) => item.trim()).filter(Boolean), scholarships: [], status: data.get('status') as StudentStatus })
   }
 
   const schoolName = (id: string) => schools.data?.items.find((school) => school.id === id)?.name ?? 'Colegio'
@@ -115,9 +118,30 @@ Intolerancias:
 {student.foodIntolerances.join(', ')}
 </p>}
 </div>
+<div className="flex flex-wrap justify-end gap-1">
+{student.scholarships.some((scholarship) => scholarship.approved) && <span className="rounded-full bg-violet-500/10 px-2 py-1 text-[10px] font-semibold text-violet-700">
+Becado
+</span>}
 <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${student.status === 'active' ? 'bg-emerald-500/10 text-emerald-600' : student.status === 'paused' ? 'bg-amber-500/10 text-amber-700' : 'bg-slate-500/10 text-slate-600'}`}>
 {student.status === 'active' ? 'Activo' : student.status === 'paused' ? 'Pausado' : 'Inactivo'}
 </span>
+</div>
+<button
+className="rounded-[4px] p-2 text-muted-foreground hover:bg-muted hover:text-primary"
+aria-label={`Método de pago de ${student.firstName} ${student.lastName}`}
+title="Método de pago"
+onClick={() => setPaymentStudent(student)}
+>
+<WalletCards size={15} />
+</button>
+<button
+className="rounded-[4px] p-2 text-muted-foreground hover:bg-muted hover:text-primary"
+aria-label={`Familiares de ${student.firstName} ${student.lastName}`}
+title="Familiares y teléfonos"
+onClick={() => setGuardiansStudent(student)}
+>
+<ContactRound size={15} />
+</button>
 <button
 className="rounded-[4px] p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
 aria-label={`Editar ${student.firstName} ${student.lastName}`}
@@ -240,6 +264,14 @@ item={editing}
 schools={schools.data?.items ?? []}
 onClose={() => setEditing(null)}
 onSaved={() => queryClient.invalidateQueries({ queryKey: ['students'] })}
+      />
+      <StudentPaymentDialog
+student={paymentStudent}
+onClose={() => setPaymentStudent(null)}
+      />
+      <StudentGuardiansDialog
+student={guardiansStudent}
+onClose={() => setGuardiansStudent(null)}
       />
     </>
   )

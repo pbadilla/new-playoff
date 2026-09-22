@@ -1,5 +1,5 @@
 import { getCollections, serializeDocument, type StudentDocument } from '@club/database'
-import { createStudentSchema } from '@club/schemas'
+import { createStudentSchema, studentGuardiansSchema, studentPaymentSettingsSchema } from '@club/schemas'
 import type { FastifyInstance } from 'fastify'
 import type { Filter } from 'mongodb'
 import { randomUUID } from 'node:crypto'
@@ -31,6 +31,7 @@ export async function studentRoutes(app: FastifyInstance) {
     return paginated(documents.map((document) => ({
       ...serializeDocument(document),
       foodIntolerances: document.foodIntolerances ?? [],
+      scholarships: document.scholarships ?? [],
       status: document.status ?? (document.active ? 'active' : 'inactive'),
     })), total, query.page, query.pageSize)
   })
@@ -54,6 +55,7 @@ export async function studentRoutes(app: FastifyInstance) {
       birthDate: input.birthDate ?? null,
       notes: input.notes ?? null,
       foodIntolerances: input.foodIntolerances,
+      scholarships: input.scholarships,
       status: input.status,
       active: input.status === 'active',
       createdAt: new Date(),
@@ -75,11 +77,71 @@ export async function studentRoutes(app: FastifyInstance) {
 
     const updated = await students.findOneAndUpdate(
       { _id: studentId, organizationId: input.organizationId },
-      { $set: { schoolId: input.schoolId, firstName: input.firstName, lastName: input.lastName, birthDate: input.birthDate ?? null, notes: input.notes ?? null, foodIntolerances: input.foodIntolerances, status: input.status, active: input.status === 'active' } },
+      { $set: { schoolId: input.schoolId, firstName: input.firstName, lastName: input.lastName, birthDate: input.birthDate ?? null, notes: input.notes ?? null, foodIntolerances: input.foodIntolerances, scholarships: input.scholarships, status: input.status, active: input.status === 'active' } },
       { returnDocument: 'after' },
     )
 
     if (!updated) return reply.code(404).send({ error: 'Student not found' })
     return serializeDocument(updated)
+  })
+
+  app.get('/students/:studentId/payment-settings', async (request, reply) => {
+    const { studentId } = request.params as { studentId: string }
+    const { organizationId } = request.query as { organizationId: string }
+    const { students, studentPaymentSettings } = await getCollections()
+    if (!await students.findOne({ _id: studentId, organizationId })) return reply.code(404).send({ error: 'Student not found' })
+
+    return await studentPaymentSettings.findOne({ studentId, organizationId }) ?? null
+  })
+
+  app.put('/students/:studentId/payment-settings', async (request, reply) => {
+    const input = parseBody(studentPaymentSettingsSchema, request.body, reply)
+    if (!input) return
+    const { studentId } = request.params as { studentId: string }
+    const { students, studentPaymentSettings } = await getCollections()
+    if (!await students.findOne({ _id: studentId, organizationId: input.organizationId })) return reply.code(404).send({ error: 'Student not found' })
+
+    const updated = await studentPaymentSettings.findOneAndUpdate(
+      { studentId, organizationId: input.organizationId },
+      { $set: { ...input, studentId, accountHolder: input.accountHolder ?? null, last4: input.last4 ?? null, cardBrand: input.cardBrand ?? null, phone: input.phone ?? null, reference: input.reference ?? null, updatedAt: new Date() }, $setOnInsert: { _id: randomUUID() } },
+      { upsert: true, returnDocument: 'after' },
+    )
+    return serializeDocument(updated!)
+  })
+
+  app.get('/students/:studentId/guardians', async (request, reply) => {
+    const { studentId } = request.params as { studentId: string }
+    const { organizationId } = request.query as { organizationId: string }
+    const { students, guardians, studentGuardians } = await getCollections()
+    if (!await students.findOne({ _id: studentId, organizationId })) return reply.code(404).send({ error: 'Student not found' })
+    const links = await studentGuardians.find({ studentId, organizationId }).toArray()
+    const documents = await guardians.find({ _id: { $in: links.map((link) => link.guardianId) }, organizationId }).toArray()
+
+    return links.map((link) => {
+      const guardian = documents.find((document) => document._id === link.guardianId)!
+      return { ...serializeDocument(guardian), relationship: link.relationship, isPrimary: link.isPrimary }
+    })
+  })
+
+  app.put('/students/:studentId/guardians', async (request, reply) => {
+    const input = parseBody(studentGuardiansSchema, request.body, reply)
+    if (!input) return
+    const { studentId } = request.params as { studentId: string }
+    const { students, guardians, studentGuardians } = await getCollections()
+    if (!await students.findOne({ _id: studentId, organizationId: input.organizationId })) return reply.code(404).send({ error: 'Student not found' })
+    if (new Set(input.guardians.map((guardian) => guardian.phone)).size !== input.guardians.length) return reply.code(400).send({ error: 'Guardian phones must be unique' })
+
+    const links = []
+    for (const guardianInput of input.guardians) {
+      const guardian = await guardians.findOneAndUpdate(
+        { organizationId: input.organizationId, phone: guardianInput.phone },
+        { $set: { firstName: guardianInput.firstName, lastName: guardianInput.lastName, email: guardianInput.email ?? null }, $setOnInsert: { _id: randomUUID(), organizationId: input.organizationId, phone: guardianInput.phone, createdAt: new Date() } },
+        { upsert: true, returnDocument: 'after' },
+      )
+      links.push({ _id: randomUUID(), organizationId: input.organizationId, studentId, guardianId: guardian!._id, relationship: guardianInput.relationship, isPrimary: guardianInput.isPrimary })
+    }
+    await studentGuardians.deleteMany({ studentId, organizationId: input.organizationId })
+    if (links.length) await studentGuardians.insertMany(links)
+    return input.guardians
   })
 }

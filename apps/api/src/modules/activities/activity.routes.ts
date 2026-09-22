@@ -1,17 +1,31 @@
-import { getCollections, serializeDocument } from '@club/database'
+import { type ActivityDocument,getCollections, serializeDocument } from '@club/database'
 import { createActivityGroupSchema, createActivitySchema, createSessionSchema } from '@club/schemas'
 import type { FastifyInstance } from 'fastify'
+import type { Filter } from 'mongodb'
 import { randomUUID } from 'node:crypto'
 
-import { getOrganizationParams, parseBody } from '../../lib/request'
+import { escapeRegex, getListQuery, getOrganizationParams, paginated, parseBody } from '../../lib/request'
 
 export async function activityRoutes(app: FastifyInstance) {
   app.get('/organizations/:organizationId/activities', async (request) => {
     const { organizationId } = getOrganizationParams(request.params)
     const { activities } = await getCollections()
-    const documents = await activities.find({ organizationId }).sort({ name: 1 }).toArray()
+    const query = getListQuery(request.query)
+    const filter: Filter<ActivityDocument> = {
+      organizationId,
+      ...(query.active === undefined ? {} : { active: query.active }),
+      ...(query.search ? { $or: [
+        { name: { $regex: escapeRegex(query.search), $options: 'i' } },
+        { description: { $regex: escapeRegex(query.search), $options: 'i' } },
+        { category: { $regex: escapeRegex(query.search), $options: 'i' } },
+      ] } : {}),
+    }
+    const [documents, total] = await Promise.all([
+      activities.find(filter).sort({ name: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
+      activities.countDocuments(filter),
+    ])
 
-    return documents.map(serializeDocument)
+    return paginated(documents.map(serializeDocument), total, query.page, query.pageSize)
   })
 
   app.post('/activities', async (request, reply) => {

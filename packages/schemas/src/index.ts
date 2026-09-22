@@ -31,7 +31,35 @@ export const createStudentSchema = z.object({
   birthDate: z.string().date().optional(),
   notes: optionalText,
   foodIntolerances: z.array(requiredText).default([]),
+  scholarships: z.array(z.object({
+    academicYear: z.string().regex(/^\d{4}\/\d{4}$/, 'Expected YYYY/YYYY'),
+    activityType: requiredText,
+    percentage: z.number().min(0).max(100),
+    approved: z.boolean(),
+  })).default([]),
   status: z.enum(['active', 'inactive', 'paused']).default('active'),
+})
+
+export const studentPaymentSettingsSchema = z.object({
+  organizationId: uuid,
+  method: z.enum(['card', 'direct-debit', 'cash', 'bizum', 'transfer']),
+  accountHolder: optionalText,
+  last4: z.string().regex(/^\d{4}$/).optional(),
+  cardBrand: optionalText,
+  phone: optionalText,
+  reference: optionalText,
+})
+
+export const studentGuardiansSchema = z.object({
+  organizationId: uuid,
+  guardians: z.array(z.object({
+    firstName: requiredText,
+    lastName: requiredText,
+    relationship: requiredText,
+    phone: requiredText,
+    email: z.email().optional(),
+    isPrimary: z.boolean().default(false),
+  })).max(10),
 })
 
 export const createActivitySchema = z.object({

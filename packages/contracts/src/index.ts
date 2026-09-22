@@ -29,6 +29,12 @@ export interface StudentDto {
   birthDate: string | null
   notes: string | null
   foodIntolerances: string[]
+  scholarships: {
+    academicYear: string
+    activityType: string
+    percentage: number
+    approved: boolean
+  }[]
   status: 'active' | 'inactive' | 'paused'
   active: boolean
 }

@@ -12,7 +12,7 @@ import { inputClass } from '../shared/backoffice-ui'
 const entities: { value: ImportEntity; label: string; columns: string }[] = [
   { value: 'schools', label: 'Colegios', columns: 'name, address, contactEmail' },
   { value: 'teachers', label: 'Profesores', columns: 'firstName, lastName, email, phone, schoolNames' },
-  { value: 'students', label: 'Alumnos', columns: 'firstName, lastName, birthDate, schoolName, foodIntolerances, status, notes' },
+  { value: 'students', label: 'Alumnos', columns: 'firstName, lastName, birthDate, schoolName, foodIntolerances, scholarships, status, notes' },
 ]
 
 export function CommunicationPage() {
@@ -134,6 +134,7 @@ Columnas esperadas
 <p className="mt-2 text-muted-foreground">
 En profesores, separa varios colegios con punto y coma.
 En alumnos, separa las intolerancias con punto y coma.
+Las becas usan curso|actividad|porcentaje|approved/pending, separadas con punto y coma.
 </p>
 </div>
 <label className="flex h-24 cursor-pointer flex-col items-center justify-center rounded-[4px] border border-dashed border-primary/40 bg-primary/5 text-center text-xs transition hover:bg-primary/10">

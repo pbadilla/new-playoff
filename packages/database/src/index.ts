@@ -61,6 +61,12 @@ export interface StudentDocument extends TenantDocument {
   birthDate?: string | null
   notes?: string | null
   foodIntolerances: string[]
+  scholarships: {
+    academicYear: string
+    activityType: string
+    percentage: number
+    approved: boolean
+  }[]
   status: 'active' | 'inactive' | 'paused'
   active: boolean
   createdAt: Date
@@ -81,6 +87,18 @@ export interface StudentGuardianDocument extends TenantDocument {
   guardianId: string
   relationship: string
   isPrimary: boolean
+}
+
+export interface StudentPaymentSettingsDocument extends TenantDocument {
+  _id: string
+  studentId: string
+  method: 'card' | 'direct-debit' | 'cash' | 'bizum' | 'transfer'
+  accountHolder?: string | null
+  last4?: string | null
+  cardBrand?: string | null
+  phone?: string | null
+  reference?: string | null
+  updatedAt: Date
 }
 
 export interface ActivityDocument extends NamedDocument {
@@ -189,6 +207,7 @@ export async function getCollections() {
     students: database.collection<StudentDocument>('students'),
     guardians: database.collection<GuardianDocument>('guardians'),
     studentGuardians: database.collection<StudentGuardianDocument>('student_guardians'),
+    studentPaymentSettings: database.collection<StudentPaymentSettingsDocument>('student_payment_settings'),
     activities: database.collection<ActivityDocument>('activities'),
     venues: database.collection<VenueDocument>('venues'),
     activityGroups: database.collection<ActivityGroupDocument>('activity_groups'),
@@ -212,6 +231,7 @@ export async function ensureIndexes() {
     collections.students.createIndex({ organizationId: 1, schoolId: 1, status: 1 }),
     collections.guardians.createIndex({ organizationId: 1, phone: 1 }),
     collections.studentGuardians.createIndex({ organizationId: 1, studentId: 1, guardianId: 1 }, { unique: true }),
+    collections.studentPaymentSettings.createIndex({ organizationId: 1, studentId: 1 }, { unique: true }),
     collections.activities.createIndex({ organizationId: 1, name: 1 }),
     collections.venues.createIndex({ organizationId: 1, name: 1 }),
     collections.activityGroups.createIndex({ organizationId: 1, schoolId: 1, active: 1 }),

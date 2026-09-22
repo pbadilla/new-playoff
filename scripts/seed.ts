@@ -36,6 +36,27 @@ const schools = [
   },
 ]
 
+const activityCatalog = [
+  ['25000000-0000-4000-8000-000000000001', 'Casal de Verano', 'Actividades educativas y de ocio durante las vacaciones de verano.', 3, 16],
+  ['25000000-0000-4000-8000-000000000002', 'Casal de Navidad', 'Programa de actividades para el periodo de vacaciones de Navidad.', 3, 16],
+  ['25000000-0000-4000-8000-000000000003', 'Casal de Semana Santa', 'Casal para los días no lectivos de Semana Santa.', 3, 16],
+  ['25000000-0000-4000-8000-000000000004', 'Jornadas Abiertas', 'Jornadas puntuales abiertas a familias y participantes.', 3, 18],
+  ['25000000-0000-4000-8000-000000000005', 'Pruebas', 'Sesiones de prueba y valoración antes de formalizar una inscripción.', 3, 18],
+  ['25000000-0000-4000-8000-000000000006', 'Otros', 'Actividades que no pertenecen a las categorías anteriores.', 3, 21],
+] as const
+
+const activities = activityCatalog.map(([_id, name, description, minimumAge, maximumAge]) => ({
+  _id,
+  organizationId,
+  name,
+  description,
+  category: name,
+  minimumAge,
+  maximumAge,
+  active: true,
+  createdAt,
+}))
+
 const teachers = [
   ['22000000-0000-4000-8000-000000000001', 'Lucía', 'Martín', 'lucia.martin@example.invalid', '+34 600 100 001'],
   ['22000000-0000-4000-8000-000000000002', 'Diego', 'Romero', 'diego.romero@example.invalid', '+34 600 100 002'],
@@ -96,6 +117,10 @@ const students = studentNames.map(([firstName, lastName, birthDate], index) => (
   birthDate,
   notes: index % 7 === 0 ? 'Ficha pendiente de completar por la familia.' : null,
   foodIntolerances: index % 8 === 0 ? ['Lactosa'] : index % 11 === 0 ? ['Gluten', 'Frutos secos'] : [],
+  scholarships: index % 6 === 0 ? [
+    { academicYear: '2025/2026', activityType: 'Casal de Verano', percentage: 50, approved: true },
+    ...(index === 0 ? [{ academicYear: '2024/2025', activityType: 'Casal de Semana Santa', percentage: 35, approved: true }] : []),
+  ] : [],
   status: index === 22 ? 'paused' as const : index === 23 ? 'inactive' as const : 'active' as const,
   active: index < 22,
   createdAt,
@@ -120,9 +145,12 @@ await Promise.all([
   collections.students.bulkWrite(students.map((student) => ({
     updateOne: { filter: { _id: student._id }, update: { $set: student }, upsert: true },
   }))),
+  collections.activities.bulkWrite(activities.map((activity) => ({
+    updateOne: { filter: { _id: activity._id }, update: { $set: activity }, upsert: true },
+  }))),
 ])
 
 console.log(`Seed completed for organization ${organizationId}`)
-console.log(`${schools.length} schools, ${teachers.length} teachers, ${students.length} students`)
+console.log(`${schools.length} schools, ${teachers.length} teachers, ${students.length} students, ${activities.length} activities`)
 
 process.exit(0)

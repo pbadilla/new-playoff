@@ -31,11 +31,52 @@ export interface Student {
   birthDate: string | null
   notes: string | null
   foodIntolerances: string[]
+  scholarships: Scholarship[]
   status: StudentStatus
   active: boolean
 }
 
 export type StudentStatus = 'active' | 'inactive' | 'paused'
+
+export interface Scholarship {
+  academicYear: string
+  activityType: string
+  percentage: number
+  approved: boolean
+}
+
+export interface Activity {
+  id: string
+  organizationId: string
+  name: string
+  description: string | null
+  category: string | null
+  minimumAge: number | null
+  maximumAge: number | null
+  active: boolean
+}
+
+export type PaymentMethod = 'card' | 'direct-debit' | 'cash' | 'bizum' | 'transfer'
+
+export interface PaymentSettings {
+  id?: string
+  method: PaymentMethod
+  accountHolder?: string | null
+  last4?: string | null
+  cardBrand?: string | null
+  phone?: string | null
+  reference?: string | null
+}
+
+export interface Guardian {
+  id?: string
+  firstName: string
+  lastName: string
+  relationship: string
+  phone: string
+  email?: string | null
+  isPrimary: boolean
+}
 
 export interface Paginated<T> {
   items: T[]
@@ -120,8 +161,16 @@ export const backofficeApi = {
   },
   students: {
     list: (params?: ListParams) => list<Student>('students', params),
-    create: (payload: { schoolId: string; firstName: string; lastName: string; birthDate?: string; notes?: string; foodIntolerances: string[]; status: StudentStatus }) => post<Student>('/students', payload),
-    update: (id: string, payload: { schoolId: string; firstName: string; lastName: string; birthDate?: string; notes?: string; foodIntolerances: string[]; status: StudentStatus }) => put<Student>(`/students/${id}`, payload),
+    create: (payload: { schoolId: string; firstName: string; lastName: string; birthDate?: string; notes?: string; foodIntolerances: string[]; scholarships: Scholarship[]; status: StudentStatus }) => post<Student>('/students', payload),
+    update: (id: string, payload: { schoolId: string; firstName: string; lastName: string; birthDate?: string; notes?: string; foodIntolerances: string[]; scholarships: Scholarship[]; status: StudentStatus }) => put<Student>(`/students/${id}`, payload),
+    getPaymentSettings: (id: string) => request<PaymentSettings | null>(`/students/${id}/payment-settings?organizationId=${ORGANIZATION_ID}`),
+    updatePaymentSettings: (id: string, payload: Omit<PaymentSettings, 'id'>) => put<PaymentSettings>(`/students/${id}/payment-settings`, payload),
+    getGuardians: (id: string) => request<Guardian[]>(`/students/${id}/guardians?organizationId=${ORGANIZATION_ID}`),
+    updateGuardians: (id: string, guardians: Guardian[]) => put<Guardian[]>(`/students/${id}/guardians`, { guardians }),
+  },
+  activities: {
+    list: (params?: ListParams) => list<Activity>('activities', params),
+    create: (payload: { name: string; description?: string; category?: string; minimumAge?: number; maximumAge?: number }) => post<Activity>('/activities', payload),
   },
   communication: {
     import: (entity: ImportEntity, rows: Record<string, unknown>[]) => request<ImportResult>(`/organizations/${ORGANIZATION_ID}/import`, { method: 'POST', body: JSON.stringify({ entity, rows }) }),

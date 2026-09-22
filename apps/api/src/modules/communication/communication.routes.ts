@@ -22,6 +22,24 @@ function studentStatus(row: Record<string, unknown>) {
   return statuses[value as keyof typeof statuses] ?? 'active'
 }
 
+function scholarships(row: Record<string, unknown>) {
+  return text(row, 'scholarships').split(';').map((value) => value.trim()).filter(Boolean).map((value) => {
+    const parts = value.split('|').map((part) => part.trim())
+    const [academicYear, activityType, percentageText, approvalText] = parts.length === 3
+      ? [parts[0], 'Otros', parts[1], parts[2]]
+      : parts
+    const percentage = Number(percentageText)
+    const approval = approvalText?.toLowerCase()
+    const approved = ['approved', 'aprobada', 'true', 'sí', 'si'].includes(approval)
+
+    if (!academicYear || !activityType || !Number.isFinite(percentage) || !approval || (![...['approved', 'aprobada', 'true', 'sí', 'si'], ...['pending', 'pendiente', 'rejected', 'denegada', 'false', 'no']].includes(approval))) {
+      throw new Error('Invalid scholarship. Use: YYYY/YYYY|activity|percentage|approved/pending')
+    }
+
+    return { academicYear, activityType, percentage, approved }
+  })
+}
+
 export async function communicationRoutes(app: FastifyInstance) {
   app.get('/organizations/:organizationId/export/:entity', async (request, reply) => {
     const { organizationId, entity } = request.params as { organizationId: string; entity: string }
@@ -43,7 +61,7 @@ export async function communicationRoutes(app: FastifyInstance) {
       rows = teachers.map((teacher) => ({ firstName: teacher.firstName, lastName: teacher.lastName, email: teacher.email, phone: teacher.phone ?? '', schoolNames: assignments.filter((assignment) => assignment.teacherId === teacher._id).map((assignment) => schoolNames.get(assignment.schoolId)).filter(Boolean).join('; ') }))
     } else {
       const students = await collections.students.find({ organizationId }).sort({ lastName: 1 }).toArray()
-      rows = students.map((student) => ({ firstName: student.firstName, lastName: student.lastName, birthDate: student.birthDate ?? '', schoolName: schoolNames.get(student.schoolId) ?? '', foodIntolerances: (student.foodIntolerances ?? []).join('; '), status: student.status ?? (student.active ? 'active' : 'inactive'), notes: student.notes ?? '' }))
+      rows = students.map((student) => ({ firstName: student.firstName, lastName: student.lastName, birthDate: student.birthDate ?? '', schoolName: schoolNames.get(student.schoolId) ?? '', foodIntolerances: (student.foodIntolerances ?? []).join('; '), scholarships: (student.scholarships ?? []).map((scholarship) => `${scholarship.academicYear}|${scholarship.activityType ?? 'Otros'}|${scholarship.percentage}|${scholarship.approved ? 'approved' : 'pending'}`).join('; '), status: student.status ?? (student.active ? 'active' : 'inactive'), notes: student.notes ?? '' }))
     }
 
     const sheet = XLSX.utils.json_to_sheet(rows)
@@ -97,7 +115,7 @@ export async function communicationRoutes(app: FastifyInstance) {
         } else {
           const school = await collections.schools.findOne({ organizationId, name: text(row, 'schoolName') })
           if (!school) throw new Error('School name does not exist')
-          const parsed = createStudentSchema.parse({ organizationId, schoolId: school._id, firstName: text(row, 'firstName'), lastName: text(row, 'lastName'), birthDate: text(row, 'birthDate') || undefined, notes: text(row, 'notes') || undefined, foodIntolerances: text(row, 'foodIntolerances').split(';').map((item) => item.trim()).filter(Boolean), status: studentStatus(row) })
+          const parsed = createStudentSchema.parse({ organizationId, schoolId: school._id, firstName: text(row, 'firstName'), lastName: text(row, 'lastName'), birthDate: text(row, 'birthDate') || undefined, notes: text(row, 'notes') || undefined, foodIntolerances: text(row, 'foodIntolerances').split(';').map((item) => item.trim()).filter(Boolean), scholarships: scholarships(row), status: studentStatus(row) })
           const existing = await collections.students.findOne({ organizationId, schoolId: school._id, firstName: parsed.firstName, lastName: parsed.lastName, birthDate: parsed.birthDate ?? null })
           await collections.students.updateOne(
             { _id: existing?._id ?? randomUUID() },
