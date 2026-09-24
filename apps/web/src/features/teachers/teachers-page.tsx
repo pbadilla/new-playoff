@@ -5,19 +5,20 @@ import { Mail, Pencil, School } from 'lucide-react'
 
 import { Card } from '../../components/ui/card'
 import { backofficeApi, type Teacher } from '../../lib/api'
-import { EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
+import { AlphabetFilter, EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
 import { EditTeacherDialog } from '../shared/edit-dialogs'
 
 export function TeachersPage() {
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<Teacher | null>(null)
   const [search, setSearch] = useState('')
+  const [initial, setInitial] = useState('')
   const [schoolId, setSchoolId] = useState('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const deferredSearch = useDeferredValue(search)
   const queryClient = useQueryClient()
-  const teachers = useQuery({ queryKey: ['teachers', deferredSearch, schoolId, page, pageSize], queryFn: () => backofficeApi.teachers.list({ search: deferredSearch, schoolId, page, pageSize }) })
+  const teachers = useQuery({ queryKey: ['teachers', deferredSearch, initial, schoolId, page, pageSize], queryFn: () => backofficeApi.teachers.list({ search: deferredSearch, initial, schoolId, page, pageSize }) })
   const schools = useQuery({ queryKey: ['schools', 'options'], queryFn: () => backofficeApi.schools.list({ active: 'true', pageSize: 100 }) })
   const mutation = useMutation({
     mutationFn: backofficeApi.teachers.create,
@@ -67,6 +68,10 @@ value={school.id}
 </option>)}
 </select>
 </ListToolbar>
+      <AlphabetFilter
+value={initial}
+onChange={(value) => { setInitial(value); setPage(1) }}
+      />
       <div className={`grid gap-4 ${creating ? 'xl:grid-cols-[1fr_380px]' : ''}`}>
         <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
 {teachers.isLoading ? <LoadingState /> : teachers.data?.items.length ? <>

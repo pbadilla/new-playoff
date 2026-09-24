@@ -126,6 +126,28 @@ const students = studentNames.map(([firstName, lastName, birthDate], index) => (
   createdAt,
 }))
 
+const activityGroups = [
+  ['26000000-0000-4000-8000-000000000001', activities[0]._id, 'Multideporte · Monteverde', schools[0]._id, 24, [{ dayOfWeek: 1, startsAt: '16:30', endsAt: '17:30' }, { dayOfWeek: 3, startsAt: '16:30', endsAt: '17:30' }]],
+  ['26000000-0000-4000-8000-000000000002', activities[5]._id, 'Robótica · Río Claro', schools[1]._id, 16, [{ dayOfWeek: 2, startsAt: '17:00', endsAt: '18:15' }]],
+  ['26000000-0000-4000-8000-000000000003', activities[3]._id, 'Teatro · Las Encinas', schools[2]._id, 20, [{ dayOfWeek: 4, startsAt: '16:45', endsAt: '18:00' }]],
+  ['26000000-0000-4000-8000-000000000004', activities[5]._id, 'Iniciación musical', schools[0]._id, 18, [{ dayOfWeek: 5, startsAt: '16:30', endsAt: '17:30' }]],
+  ['26000000-0000-4000-8000-000000000005', activities[4]._id, 'Grupo de prueba', schools[1]._id, 12, [{ dayOfWeek: 1, startsAt: '18:00', endsAt: '19:00' }]],
+].map(([_id, activityId, name, schoolId, capacity, schedule]) => ({
+  _id: String(_id), organizationId, activityId: String(activityId), name: String(name), scope: 'school' as const,
+  schoolId: String(schoolId), venueId: null, capacity: Number(capacity), schedule: schedule as { dayOfWeek: number; startsAt: string; endsAt: string }[], active: true, createdAt,
+}))
+
+const groupTeachers = activityGroups.map((group, index) => ({
+  _id: `27000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+  organizationId, groupId: group._id, teacherId: teachers[index % teachers.length]._id, role: 'lead' as const,
+}))
+
+const enrollments = activityGroups.flatMap((group, groupIndex) => Array.from({ length: groupIndex + 4 }, (_, index) => ({
+  _id: `28000000-0000-4000-${String(groupIndex + 1).padStart(4, '0')}-${String(index + 1).padStart(12, '0')}`,
+  organizationId, groupId: group._id, studentId: students[(groupIndex * 4 + index) % students.length]._id,
+  status: 'active' as const, enrolledAt: createdAt,
+})))
+
 const collections = await getCollections()
 
 await Promise.all([
@@ -148,9 +170,18 @@ await Promise.all([
   collections.activities.bulkWrite(activities.map((activity) => ({
     updateOne: { filter: { _id: activity._id }, update: { $set: activity }, upsert: true },
   }))),
+  collections.activityGroups.bulkWrite(activityGroups.map((group) => ({
+    updateOne: { filter: { _id: group._id }, update: { $set: group }, upsert: true },
+  }))),
+  collections.groupTeachers.bulkWrite(groupTeachers.map((assignment) => ({
+    updateOne: { filter: { organizationId, groupId: assignment.groupId, teacherId: assignment.teacherId }, update: { $set: assignment }, upsert: true },
+  }))),
+  collections.enrollments.bulkWrite(enrollments.map((enrollment) => ({
+    updateOne: { filter: { organizationId, groupId: enrollment.groupId, studentId: enrollment.studentId }, update: { $set: enrollment }, upsert: true },
+  }))),
 ])
 
 console.log(`Seed completed for organization ${organizationId}`)
-console.log(`${schools.length} schools, ${teachers.length} teachers, ${students.length} students, ${activities.length} activities`)
+console.log(`${schools.length} schools, ${teachers.length} teachers, ${students.length} students, ${activities.length} activities, ${activityGroups.length} groups`)
 
 process.exit(0)

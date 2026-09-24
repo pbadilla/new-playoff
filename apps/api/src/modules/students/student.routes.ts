@@ -16,6 +16,7 @@ export async function studentRoutes(app: FastifyInstance) {
       ...(query.schoolId ? { schoolId: query.schoolId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.active === undefined ? {} : { active: query.active }),
+      ...(query.initial ? { lastName: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
       ...(query.search ? {
         $or: [
           { firstName: { $regex: escapeRegex(query.search), $options: 'i' } },
@@ -107,6 +108,14 @@ export async function studentRoutes(app: FastifyInstance) {
       { upsert: true, returnDocument: 'after' },
     )
     return serializeDocument(updated!)
+  })
+
+  app.delete('/students/:studentId/payment-settings', async (request, reply) => {
+    const { studentId } = request.params as { studentId: string }
+    const { organizationId } = request.query as { organizationId: string }
+    const { studentPaymentSettings } = await getCollections()
+    await studentPaymentSettings.deleteOne({ studentId, organizationId })
+    return reply.code(204).send()
   })
 
   app.get('/students/:studentId/guardians', async (request, reply) => {

@@ -5,19 +5,20 @@ import { Mail, MapPin, Pencil, School } from 'lucide-react'
 
 import { Card } from '../../components/ui/card'
 import { backofficeApi, type School as SchoolRecord } from '../../lib/api'
-import { EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
+import { AlphabetFilter, EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
 import { EditSchoolDialog } from '../shared/edit-dialogs'
 
 export function SchoolsPage() {
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<SchoolRecord | null>(null)
   const [search, setSearch] = useState('')
+  const [initial, setInitial] = useState('')
   const [active, setActive] = useState<'' | 'true' | 'false'>('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const deferredSearch = useDeferredValue(search)
   const queryClient = useQueryClient()
-  const query = useQuery({ queryKey: ['schools', deferredSearch, active, page, pageSize], queryFn: () => backofficeApi.schools.list({ search: deferredSearch, active: active || undefined, page, pageSize }) })
+  const query = useQuery({ queryKey: ['schools', deferredSearch, initial, active, page, pageSize], queryFn: () => backofficeApi.schools.list({ search: deferredSearch, initial, active: active || undefined, page, pageSize }) })
   const mutation = useMutation({
     mutationFn: backofficeApi.schools.create,
     onSuccess: async () => {
@@ -65,6 +66,10 @@ Inactivos
 </option>
 </select>
 </ListToolbar>
+      <AlphabetFilter
+value={initial}
+onChange={(value) => { setInitial(value); setPage(1) }}
+      />
       <div className={`grid gap-4 ${creating ? 'xl:grid-cols-[1fr_360px]' : ''}`}>
         <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
           {query.isLoading ? <LoadingState /> : query.data?.items.length ? <>

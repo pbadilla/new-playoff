@@ -39,6 +39,31 @@ Mientras no exista autenticación, el frontend usa `VITE_ORGANIZATION_ID` como o
 
 `bun run seed` carga un conjunto idempotente de colegios, profesores, asignaciones y alumnos ficticios en `SEED_ORGANIZATION_ID`. Los correos terminan en `.invalid` y no representan personas reales. Ejecutarlo de nuevo actualiza los mismos registros sin duplicarlos.
 
+### Importación de PlayOff
+
+Los Excel históricos de `data/` se procesan mediante un importador idempotente. Antes de modificar MongoDB debe ejecutarse la simulación:
+
+```bash
+bun run import:legacy:dry-run
+```
+
+La simulación muestra únicamente recuentos y problemas de enlace; no imprime datos personales ni escribe en la base de datos. Después de revisar el resultado, la importación se ejecuta explícitamente con:
+
+```bash
+bun run import:legacy
+```
+
+Mapeos principales:
+
+- `Socis` y `Associats`: alumnos y colegios, deduplicados por nombre, apellidos y fecha de nacimiento.
+- `Tutors dels associats`: familiares y relación alumno/familiar, enlazados por la identidad del alumno.
+- `Activitats`: actividades, descripción y resumen histórico conservado en `legacy`.
+- IBAN: nunca se importa completo; solo se conservan los últimos cuatro dígitos como referencia de domiciliación.
+- Asistencia: queda excluida porque el fichero solo contiene agregados por sesión y no identifica alumnos.
+- Ventas, contactos e inscripciones: quedan excluidos mientras sus hojas no contengan registros.
+
+Los identificadores se generan de forma determinista, por lo que repetir la importación actualiza los mismos documentos. Las filas de tutores sin alumno o teléfono inequívoco se contabilizan como pendientes de revisión y no se importan automáticamente.
+
 ## Endpoints iniciales
 
 - `GET /organizations/:organizationId/schools`

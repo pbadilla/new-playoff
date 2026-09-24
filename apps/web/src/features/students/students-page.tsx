@@ -5,7 +5,7 @@ import { ContactRound, Pencil, School, UserRound, WalletCards } from 'lucide-rea
 
 import { Card } from '../../components/ui/card'
 import { backofficeApi, type Student, type StudentStatus } from '../../lib/api'
-import { EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
+import { AlphabetFilter, EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
 import { EditStudentDialog } from '../shared/edit-dialogs'
 import { StudentGuardiansDialog, StudentPaymentDialog } from './student-extra-dialogs'
 
@@ -15,13 +15,14 @@ export function StudentsPage() {
   const [paymentStudent, setPaymentStudent] = useState<Student | null>(null)
   const [guardiansStudent, setGuardiansStudent] = useState<Student | null>(null)
   const [search, setSearch] = useState('')
+  const [initial, setInitial] = useState('')
   const [schoolId, setSchoolId] = useState('')
   const [status, setStatus] = useState<'' | StudentStatus>('')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const deferredSearch = useDeferredValue(search)
   const queryClient = useQueryClient()
-  const students = useQuery({ queryKey: ['students', deferredSearch, schoolId, status, page, pageSize], queryFn: () => backofficeApi.students.list({ search: deferredSearch, schoolId, status: status || undefined, page, pageSize }) })
+  const students = useQuery({ queryKey: ['students', deferredSearch, initial, schoolId, status, page, pageSize], queryFn: () => backofficeApi.students.list({ search: deferredSearch, initial, schoolId, status: status || undefined, page, pageSize }) })
   const schools = useQuery({ queryKey: ['schools', 'options'], queryFn: () => backofficeApi.schools.list({ active: 'true', pageSize: 100 }) })
   const mutation = useMutation({
     mutationFn: backofficeApi.students.create,
@@ -90,6 +91,10 @@ Inactivos
 </option>
 </select>
 </ListToolbar>
+      <AlphabetFilter
+value={initial}
+onChange={(value) => { setInitial(value); setPage(1) }}
+      />
       <div className={`grid gap-4 ${creating ? 'xl:grid-cols-[1fr_380px]' : ''}`}>
         <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
 {students.isLoading ? <LoadingState /> : students.data?.items.length ? <>

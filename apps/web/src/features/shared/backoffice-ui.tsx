@@ -7,6 +7,39 @@ import { Card } from '../../components/ui/card'
 export const inputClass = 'h-10 w-full rounded-[4px] border border-border bg-background px-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15'
 export const labelClass = 'grid gap-1.5 text-xs font-semibold text-foreground'
 
+const initials = [...'ABCDEFGHIJKLMN', 'Ñ', ...'OPQRSTUVWXYZ']
+
+export function AlphabetFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <div
+className="mb-4 flex gap-1 overflow-x-auto pb-1"
+aria-label="Filtrar por inicial"
+    >
+      <Button
+type="button"
+size="sm"
+variant={value ? 'outline' : 'default'}
+onClick={() => onChange('')}
+      >
+        Todos
+      </Button>
+      {initials.map((initial) => (
+        <Button
+          key={initial}
+          type="button"
+          size="sm"
+          variant={value === initial ? 'default' : 'outline'}
+          className="min-w-8 px-2"
+          aria-pressed={value === initial}
+          onClick={() => onChange(value === initial ? '' : initial)}
+        >
+          {initial}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
 export function PageHeader({ title, onCreate, createLabel }: { title: string; onCreate: () => void; createLabel: string }) {
   return (
     <div className="mb-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">

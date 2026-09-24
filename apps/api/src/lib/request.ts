@@ -24,6 +24,7 @@ export function getListQuery(query: unknown) {
     schoolId?: string
     active?: string
     status?: string
+    initial?: string
   }
   const page = Math.max(1, Number.parseInt(value.page ?? '1', 10) || 1)
   const pageSize = Math.min(100, Math.max(1, Number.parseInt(value.pageSize ?? '10', 10) || 10))
@@ -33,6 +34,7 @@ export function getListQuery(query: unknown) {
     schoolId: value.schoolId?.trim() || undefined,
     active: value.active === 'true' ? true : value.active === 'false' ? false : undefined,
     status: ['active', 'inactive', 'paused'].includes(value.status ?? '') ? value.status as 'active' | 'inactive' | 'paused' : undefined,
+    initial: /^[A-ZÑ]$/i.test(value.initial?.trim() ?? '') ? value.initial!.trim().toUpperCase() : undefined,
     page,
     pageSize,
     skip: (page - 1) * pageSize,

@@ -14,6 +14,7 @@ export async function schoolRoutes(app: FastifyInstance) {
     const filter: Filter<SchoolDocument> = {
       organizationId,
       ...(query.active === undefined ? {} : { active: query.active }),
+      ...(query.initial ? { name: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
       ...(query.search ? {
         $or: [
           { name: { $regex: escapeRegex(query.search), $options: 'i' } },

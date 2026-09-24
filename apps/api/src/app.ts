@@ -1,30 +1,33 @@
-import { getCollections } from '@club/database'
-import cors from '@fastify/cors'
-import Fastify from 'fastify'
+import { getCollections } from "@club/database";
+import cors from "@fastify/cors";
+import Fastify from "fastify";
 
-import { activityRoutes } from './modules/activities/activity.routes'
-import { communicationRoutes } from './modules/communication/communication.routes'
-import { schoolRoutes } from './modules/schools/school.routes'
-import { studentRoutes } from './modules/students/student.routes'
-import { teacherRoutes } from './modules/teachers/teacher.routes'
+import { activityRoutes } from "./modules/activities/activity.routes";
+import { communicationRoutes } from "./modules/communication/communication.routes";
+import { schoolRoutes } from "./modules/schools/school.routes";
+import { studentRoutes } from "./modules/students/student.routes";
+import { teacherRoutes } from "./modules/teachers/teacher.routes";
 
 export async function buildApp() {
-  const app = Fastify({ logger: true })
+  const app = Fastify({ logger: true });
 
-  await app.register(cors, { origin: true })
+  await app.register(cors, {
+    origin: true,
+    methods: ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  });
 
-  app.get('/health', async () => {
-    const database = await getCollections()
-    await database.schools.findOne({}, { projection: { _id: 1 } })
+  app.get("/health", async () => {
+    const database = await getCollections();
+    await database.schools.findOne({}, { projection: { _id: 1 } });
 
-    return { ok: true, service: 'api', database: 'mongodb' }
-  })
+    return { ok: true, service: "api", database: "mongodb" };
+  });
 
-  await app.register(schoolRoutes)
-  await app.register(teacherRoutes)
-  await app.register(studentRoutes)
-  await app.register(activityRoutes)
-  await app.register(communicationRoutes)
+  await app.register(schoolRoutes);
+  await app.register(teacherRoutes);
+  await app.register(studentRoutes);
+  await app.register(activityRoutes);
+  await app.register(communicationRoutes);
 
-  return app
+  return app;
 }
