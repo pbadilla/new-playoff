@@ -11,10 +11,9 @@ export async function schoolRoutes(app: FastifyInstance) {
     const { organizationId } = getOrganizationParams(request.params)
     const { schools } = await getCollections()
     const query = getListQuery(request.query)
-    const filter: Filter<SchoolDocument> = {
+    const baseFilter: Filter<SchoolDocument> = {
       organizationId,
       ...(query.active === undefined ? {} : { active: query.active }),
-      ...(query.initial ? { name: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
       ...(query.search ? {
         $or: [
           { name: { $regex: escapeRegex(query.search), $options: 'i' } },
@@ -23,12 +22,21 @@ export async function schoolRoutes(app: FastifyInstance) {
         ],
       } : {}),
     }
-    const [documents, total] = await Promise.all([
-      schools.find(filter).sort({ name: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
+    const filter: Filter<SchoolDocument> = {
+      ...baseFilter,
+      ...(query.initial ? { name: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
+    }
+    const [documents, total, initialRows] = await Promise.all([
+      schools.find(filter).collation({ locale: 'es', strength: 1 }).sort({ name: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
       schools.countDocuments(filter),
+      schools.aggregate<{ _id: string }>([
+        { $match: baseFilter },
+        { $project: { initial: { $toUpper: { $substrCP: [{ $convert: { input: '$name', to: 'string', onError: '', onNull: '' } }, 0, 1] } } } },
+        { $group: { _id: '$initial' } },
+      ]).toArray(),
     ])
 
-    return paginated(documents.map(serializeDocument), total, query.page, query.pageSize)
+    return { ...paginated(documents.map(serializeDocument), total, query.page, query.pageSize), availableInitials: initialRows.map((row) => row._id) }
   })
 
   app.post('/schools', async (request, reply) => {

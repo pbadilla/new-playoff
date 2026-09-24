@@ -23,6 +23,7 @@ export function getListQuery(query: unknown) {
     pageSize?: string
     schoolId?: string
     active?: string
+    categoryGroup?: string
     status?: string
     initial?: string
   }
@@ -33,6 +34,7 @@ export function getListQuery(query: unknown) {
     search: value.search?.trim() ?? '',
     schoolId: value.schoolId?.trim() || undefined,
     active: value.active === 'true' ? true : value.active === 'false' ? false : undefined,
+    categoryGroup: ['casals', 'extraescolares', 'otros'].includes(value.categoryGroup ?? '') ? value.categoryGroup : undefined,
     status: ['active', 'inactive', 'paused'].includes(value.status ?? '') ? value.status as 'active' | 'inactive' | 'paused' : undefined,
     initial: /^[A-ZÑ]$/i.test(value.initial?.trim() ?? '') ? value.initial!.trim().toUpperCase() : undefined,
     page,

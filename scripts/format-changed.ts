@@ -3,11 +3,11 @@ import { getChangedTypeScriptFiles } from "./changed-files";
 const files = getChangedTypeScriptFiles();
 
 if (!files.length) {
-  console.log("No modified TypeScript files to lint.");
+  console.log("No modified TypeScript files to format.");
   process.exit(0);
 }
 
-const result = Bun.spawnSync(["bun", "x", "eslint", ...files], {
+const result = Bun.spawnSync(["bun", "x", "prettier", "--write", ...files], {
   stdout: "inherit",
   stderr: "inherit",
 });

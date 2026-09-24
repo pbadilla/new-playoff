@@ -5,7 +5,7 @@ import { Mail, Pencil, School } from 'lucide-react'
 
 import { Card } from '../../components/ui/card'
 import { backofficeApi, type Teacher } from '../../lib/api'
-import { AlphabetFilter, EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
+import { AlphabetFilter, EmptyState, FormPanel, inputClass, labelClass, ListToolbar, LoadingState, normalizeAlphabetInitial, PageHeader, Pagination, SubmitButton } from '../shared/backoffice-ui'
 import { EditTeacherDialog } from '../shared/edit-dialogs'
 
 export function TeachersPage() {
@@ -35,9 +35,12 @@ export function TeachersPage() {
   }
 
   const schoolName = (id: string) => schools.data?.items.find((school) => school.id === id)?.name ?? 'Colegio'
-  const updateSearch = (value: string) => { setSearch(value); setPage(1) }
-  const updateSchool = (value: string) => { setSchoolId(value); setPage(1) }
+  const updateSearch = (value: string) => { setSearch(value); setInitial(''); setPage(1) }
+  const updateSchool = (value: string) => { setSchoolId(value); setInitial(''); setPage(1) }
   const updatePageSize = (value: number) => { setPageSize(value); setPage(1) }
+  const visibleTeachers = (teachers.data?.items ?? [])
+    .filter((teacher) => !initial || normalizeAlphabetInitial(teacher.firstName) === initial)
+    .sort((left, right) => left.firstName.localeCompare(right.firstName, 'es', { sensitivity: 'base' }) || left.lastName.localeCompare(right.lastName, 'es', { sensitivity: 'base' }))
 
   return (
     <>
@@ -70,13 +73,14 @@ value={school.id}
 </ListToolbar>
       <AlphabetFilter
 value={initial}
+availableInitials={teachers.isLoading ? undefined : Array.from(new Set([...(teachers.data?.availableInitials ?? []).map(normalizeAlphabetInitial), ...(teachers.data?.items.map((teacher) => normalizeAlphabetInitial(teacher.firstName)) ?? [])]))}
 onChange={(value) => { setInitial(value); setPage(1) }}
       />
       <div className={`grid gap-4 ${creating ? 'xl:grid-cols-[1fr_380px]' : ''}`}>
         <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
-{teachers.isLoading ? <LoadingState /> : teachers.data?.items.length ? <>
+{teachers.isLoading ? <LoadingState /> : teachers.isError ? <EmptyState title="No se pudieron cargar los profesores" description={teachers.error.message} /> : visibleTeachers.length ? <>
 <div className="divide-y divide-border">
-{teachers.data.items.map((teacher) => <div
+{visibleTeachers.map((teacher) => <div
 key={teacher.id}
 className="flex items-start gap-4 p-4 hover:bg-muted/40"
 >

@@ -14,10 +14,9 @@ export async function teacherRoutes(app: FastifyInstance) {
     const schoolAssignments = query.schoolId
       ? await teacherSchoolAssignments.find({ organizationId, schoolId: query.schoolId }).toArray()
       : []
-    const filter: Filter<TeacherDocument> = {
+    const baseFilter: Filter<TeacherDocument> = {
       organizationId,
       ...(query.active === undefined ? {} : { active: query.active }),
-      ...(query.initial ? { lastName: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
       ...(query.schoolId ? { _id: { $in: schoolAssignments.map((assignment) => assignment.teacherId) } } : {}),
       ...(query.search ? {
         $or: [
@@ -27,9 +26,18 @@ export async function teacherRoutes(app: FastifyInstance) {
         ],
       } : {}),
     }
-    const [documents, total] = await Promise.all([
-      teachers.find(filter).sort({ lastName: 1, firstName: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
+    const filter: Filter<TeacherDocument> = {
+      ...baseFilter,
+      ...(query.initial ? { firstName: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
+    }
+    const [documents, total, initialRows] = await Promise.all([
+      teachers.find(filter).collation({ locale: 'es', strength: 1 }).sort({ firstName: 1, lastName: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
       teachers.countDocuments(filter),
+      teachers.aggregate<{ _id: string }>([
+        { $match: baseFilter },
+        { $project: { initial: { $toUpper: { $substrCP: [{ $convert: { input: '$firstName', to: 'string', onError: '', onNull: '' } }, 0, 1] } } } },
+        { $group: { _id: '$initial' } },
+      ]).toArray(),
     ])
     const assignments = documents.length
       ? await teacherSchoolAssignments.find({ organizationId, teacherId: { $in: documents.map((teacher) => teacher._id) } }).toArray()
@@ -42,7 +50,7 @@ export async function teacherRoutes(app: FastifyInstance) {
         .map((assignment) => assignment.schoolId),
     }))
 
-    return paginated(items, total, query.page, query.pageSize)
+    return { ...paginated(items, total, query.page, query.pageSize), availableInitials: initialRows.map((row) => row._id) }
   })
 
   app.post('/teachers', async (request, reply) => {

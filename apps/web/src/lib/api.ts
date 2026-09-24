@@ -91,6 +91,7 @@ export interface Paginated<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+  availableInitials?: string[];
 }
 
 export interface ListParams {
@@ -100,6 +101,7 @@ export interface ListParams {
   pageSize?: number;
   schoolId?: string;
   active?: "true" | "false";
+  categoryGroup?: "casals" | "extraescolares" | "otros";
   status?: StudentStatus;
 }
 
@@ -280,6 +282,17 @@ export const backofficeApi = {
       request<ActivityGroup[]>(
         `/organizations/${ORGANIZATION_ID}/activity-groups`,
       ),
+    create: (payload: {
+      activityId: string;
+      name: string;
+      scope: "school" | "external";
+      schoolId?: string;
+      venueId?: string;
+      teacherIds: string[];
+      studentIds: string[];
+      capacity: number;
+      schedule: { dayOfWeek: number; startsAt: string; endsAt: string }[];
+    }) => post<ActivityGroup>("/activity-groups", payload),
     update: (
       id: string,
       payload: {

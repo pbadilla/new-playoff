@@ -80,16 +80,15 @@ export function ActivityGroupEditDialog({
   });
 
   useEffect(() => {
-    if (!group) return;
-    setName(group.name);
-    setActivityId(group.activityId);
-    setScope(group.scope);
-    setSchoolId(group.schoolId ?? "");
-    setVenueId(group.venueId ?? "");
-    setCapacity(String(group.capacity));
-    setTeacherIds(group.teacherIds);
-    setStudentIds(group.studentIds);
-    setSchedule(group.schedule);
+    setName(group?.name ?? "");
+    setActivityId(group?.activityId ?? "");
+    setScope(group?.scope ?? "external");
+    setSchoolId(group?.schoolId ?? "");
+    setVenueId(group?.venueId ?? "");
+    setCapacity(group ? String(group.capacity) : "12");
+    setTeacherIds(group?.teacherIds ?? []);
+    setStudentIds(group?.studentIds ?? []);
+    setSchedule(group?.schedule ?? []);
   }, [group]);
 
   const toggle = (
@@ -148,10 +147,10 @@ export function ActivityGroupEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader
-          title="Editar grupo"
-          description="Gestiona profesores, alumnos y el centro asociado a este grupo."
+          title={group ? "Editar grupo" : "Añadir grupo a la agenda"}
+          description="Configura actividad, horario, profesores y participantes."
         />
-        {group && (
+        {open && (
           <form className="grid gap-4" onSubmit={submit}>
             <label className={labelClass}>
               Nombre
@@ -226,12 +225,14 @@ export function ActivityGroupEditDialog({
               </label>
             )}
             <label className={labelClass}>
-              Centro de actividad / sala
+              ID del espacio (opcional)
               <input
                 className={inputClass}
                 value={venueId}
                 onChange={(event) => setVenueId(event.target.value)}
-                placeholder="Nombre o referencia del espacio"
+                placeholder="UUID del espacio"
+                pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}"
+                title="Introduce un UUID válido o deja este campo vacío."
               />
             </label>
             <fieldset className="grid gap-2">
@@ -321,7 +322,7 @@ export function ActivityGroupEditDialog({
               </p>
             )}
             <Button type="submit" disabled={pending || !name.trim()}>
-              {pending ? "Guardando..." : "Guardar cambios"}
+              {pending ? "Guardando..." : group ? "Guardar cambios" : "Añadir grupo"}
             </Button>
           </form>
         )}

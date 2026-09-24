@@ -33,8 +33,8 @@ export function SchoolsPage() {
     mutation.mutate({ name: String(data.get('name')), address: String(data.get('address') || '') || undefined, contactEmail: String(data.get('contactEmail') || '') || undefined })
   }
 
-  const updateSearch = (value: string) => { setSearch(value); setPage(1) }
-  const updateActive = (value: '' | 'true' | 'false') => { setActive(value); setPage(1) }
+  const updateSearch = (value: string) => { setSearch(value); setInitial(''); setPage(1) }
+  const updateActive = (value: '' | 'true' | 'false') => { setActive(value); setInitial(''); setPage(1) }
   const updatePageSize = (value: number) => { setPageSize(value); setPage(1) }
 
   return (
@@ -68,11 +68,12 @@ Inactivos
 </ListToolbar>
       <AlphabetFilter
 value={initial}
+availableInitials={query.isLoading ? undefined : Array.from(new Set([...(query.data?.availableInitials ?? []), ...(query.data?.items.map((school) => school.name.slice(0, 1).toLocaleUpperCase()) ?? [])]))}
 onChange={(value) => { setInitial(value); setPage(1) }}
       />
       <div className={`grid gap-4 ${creating ? 'xl:grid-cols-[1fr_360px]' : ''}`}>
         <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
-          {query.isLoading ? <LoadingState /> : query.data?.items.length ? <>
+          {query.isLoading ? <LoadingState /> : query.isError ? <EmptyState title="No se pudieron cargar los colegios" description={query.error.message} /> : query.data?.items.length ? <>
 <div className="divide-y divide-border">
 {query.data.items.map((school) => <div
 key={school.id}

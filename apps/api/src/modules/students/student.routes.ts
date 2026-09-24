@@ -11,12 +11,11 @@ export async function studentRoutes(app: FastifyInstance) {
     const { organizationId } = getOrganizationParams(request.params)
     const { students } = await getCollections()
     const query = getListQuery(request.query)
-    const filter: Filter<StudentDocument> = {
+    const baseFilter: Filter<StudentDocument> = {
       organizationId,
       ...(query.schoolId ? { schoolId: query.schoolId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.active === undefined ? {} : { active: query.active }),
-      ...(query.initial ? { lastName: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
       ...(query.search ? {
         $or: [
           { firstName: { $regex: escapeRegex(query.search), $options: 'i' } },
@@ -24,17 +23,29 @@ export async function studentRoutes(app: FastifyInstance) {
         ],
       } : {}),
     }
-    const [documents, total] = await Promise.all([
-      students.find(filter).sort({ lastName: 1, firstName: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
+    const filter: Filter<StudentDocument> = {
+      ...baseFilter,
+      ...(query.initial ? { firstName: { $regex: `^${escapeRegex(query.initial)}`, $options: 'i' } } : {}),
+    }
+    const [documents, total, initialRows] = await Promise.all([
+      students.find(filter).collation({ locale: 'es', strength: 1 }).sort({ firstName: 1, lastName: 1 }).skip(query.skip).limit(query.pageSize).toArray(),
       students.countDocuments(filter),
+      students.aggregate<{ _id: string }>([
+        { $match: baseFilter },
+        { $project: { initial: { $toUpper: { $substrCP: [{ $convert: { input: '$firstName', to: 'string', onError: '', onNull: '' } }, 0, 1] } } } },
+        { $group: { _id: '$initial' } },
+      ]).toArray(),
     ])
 
-    return paginated(documents.map((document) => ({
-      ...serializeDocument(document),
-      foodIntolerances: document.foodIntolerances ?? [],
-      scholarships: document.scholarships ?? [],
-      status: document.status ?? (document.active ? 'active' : 'inactive'),
-    })), total, query.page, query.pageSize)
+    return {
+      ...paginated(documents.map((document) => ({
+        ...serializeDocument(document),
+        foodIntolerances: document.foodIntolerances ?? [],
+        scholarships: document.scholarships ?? [],
+        status: document.status ?? (document.active ? 'active' : 'inactive'),
+      })), total, query.page, query.pageSize),
+      availableInitials: initialRows.map((row) => row._id),
+    }
   })
 
   app.post('/students', async (request, reply) => {

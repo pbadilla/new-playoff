@@ -7,6 +7,8 @@
       "devDependencies": {
         "@eslint/js": "^9.32.0",
         "@stylistic/eslint-plugin": "^5.10.0",
+        "@types/react": "^19.3.0",
+        "@types/react-dom": "^19.3.0",
         "eslint": "^9.32.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.20",
@@ -35,7 +37,7 @@
       },
     },
     "apps/web": {
-      "name": "@club/web",
+      "name": "@playrg360/web",
       "dependencies": {
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -135,8 +137,6 @@
     "@club/database": ["@club/database@workspace:packages/database"],
 
     "@club/schemas": ["@club/schemas@workspace:packages/schemas"],
-
-    "@club/web": ["@club/web@workspace:apps/web"],
 
     "@club/worker": ["@club/worker@workspace:apps/worker"],
 
@@ -257,6 +257,8 @@
     "@napi-rs/lzma-linux-x64-gnu": ["@napi-rs/lzma-linux-x64-gnu@1.5.1", "", { "os": "linux", "cpu": "x64" }, "sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ=="],
 
     "@pinojs/redact": ["@pinojs/redact@0.4.0", "", {}, "sha512-k2ENnmBugE/rzQfEcdWHcCY+/FM3VLzH9cYEsbdsoqrvzAKRhUZeRNhAZvB8OitQJ1TBed3yqWtdjzS6wJKBwg=="],
+
+    "@playrg360/web": ["@playrg360/web@workspace:apps/web"],
 
     "@radix-ui/primitive": ["@radix-ui/primitive@1.1.7", "", {}, "sha512-rqWnm76nYT8HoNNqEjpgJ7Pw/DrBj5iBTrmEPo6HTX5+VJyBNOqTdv4g89G63HuR5g0AaENoAcH7Is5fF2kZ8Q=="],
 

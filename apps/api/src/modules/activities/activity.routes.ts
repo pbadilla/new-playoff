@@ -31,6 +31,18 @@ export async function activityRoutes(app: FastifyInstance) {
     const filter: Filter<ActivityDocument> = {
       organizationId,
       ...(query.active === undefined ? {} : { active: query.active }),
+      ...(query.categoryGroup === "casals"
+        ? { category: { $regex: "^casal", $options: "i" } }
+        : query.categoryGroup === "extraescolares"
+          ? { category: { $regex: "^extraescolar", $options: "i" } }
+          : query.categoryGroup === "otros"
+            ? {
+                $nor: [
+                  { category: { $regex: "^casal", $options: "i" } },
+                  { category: { $regex: "^extraescolar", $options: "i" } },
+                ],
+              }
+            : {}),
       ...(query.search
         ? {
             $or: [

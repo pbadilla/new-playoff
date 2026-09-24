@@ -1,5 +1,5 @@
 import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle, Plus, Search } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
@@ -7,9 +7,18 @@ import { Card } from '../../components/ui/card'
 export const inputClass = 'h-10 w-full rounded-[4px] border border-border bg-background px-3 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15'
 export const labelClass = 'grid gap-1.5 text-xs font-semibold text-foreground'
 
+export const normalizeAlphabetInitial = (value: string) =>
+  value.trimStart().slice(0, 1).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleUpperCase('es')
+
 const initials = [...'ABCDEFGHIJKLMN', 'Ñ', ...'OPQRSTUVWXYZ']
 
-export function AlphabetFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+export function AlphabetFilter({ value, onChange, availableInitials }: { value: string; onChange: (value: string) => void; availableInitials?: string[] }) {
+  useEffect(() => {
+    if (value && availableInitials && !availableInitials.includes(value)) {
+      onChange('')
+    }
+  }, [availableInitials, onChange, value])
+
   return (
     <div
 className="mb-4 flex gap-1 overflow-x-auto pb-1"
@@ -23,19 +32,24 @@ onClick={() => onChange('')}
       >
         Todos
       </Button>
-      {initials.map((initial) => (
+      {initials.map((initial) => {
+        const unavailable = availableInitials !== undefined && !availableInitials.includes(initial)
+        return (
         <Button
           key={initial}
           type="button"
           size="sm"
           variant={value === initial ? 'default' : 'outline'}
-          className="min-w-8 px-2"
+          className="min-w-8 px-2 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-muted/30 disabled:text-muted-foreground/35 disabled:opacity-100"
           aria-pressed={value === initial}
+          aria-disabled={unavailable}
+          disabled={unavailable}
           onClick={() => onChange(value === initial ? '' : initial)}
         >
           {initial}
         </Button>
-      ))}
+        )
+      })}
     </div>
   )
 }

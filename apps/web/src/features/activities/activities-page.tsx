@@ -5,11 +5,13 @@ import {
   CalendarDays,
   Clock,
   Pencil,
+  Plus,
   Trash2,
   UserRound,
   Users,
 } from "lucide-react";
 
+import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import {
   type Activity,
@@ -56,18 +58,30 @@ export function ActivitiesPage({
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [active, setActive] = useState<"" | "true" | "false">("");
+  const [categoryGroup, setCategoryGroup] = useState<
+    "" | "casals" | "extraescolares" | "otros"
+  >("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [editing, setEditing] = useState<Activity | null>(null);
   const [editingGroup, setEditingGroup] = useState<ActivityGroup | null>(null);
+  const [creatingGroup, setCreatingGroup] = useState(false);
   const deferredSearch = useDeferredValue(search);
   const queryClient = useQueryClient();
   const query = useQuery({
-    queryKey: ["activities", deferredSearch, active, page, pageSize],
+    queryKey: [
+      "activities",
+      deferredSearch,
+      active,
+      categoryGroup,
+      page,
+      pageSize,
+    ],
     queryFn: () =>
       backofficeApi.activities.list({
         search: deferredSearch,
         active: active || undefined,
+        categoryGroup: categoryGroup || undefined,
         page,
         pageSize,
       }),
@@ -136,6 +150,13 @@ export function ActivitiesPage({
       setEditingGroup(null);
     },
   });
+  const createGroupMutation = useMutation({
+    mutationFn: backofficeApi.activityGroups.create,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["activity-groups"] });
+      setCreatingGroup(false);
+    },
+  });
   const removeGroupMutation = useMutation({
     mutationFn: backofficeApi.activityGroups.remove,
     onSuccess: async () => {
@@ -161,38 +182,66 @@ export function ActivitiesPage({
 
   return (
     <>
-      <PageHeader
-        title="Actividades"
-        createLabel="Nueva actividad"
-        onCreate={() => setCreating((value) => !value)}
-      />
-      <ListToolbar
-        search={search}
-        onSearch={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        pageSize={pageSize}
-        onPageSize={(value) => {
-          setPageSize(value);
-          setPage(1);
-        }}
-      >
-        <select
-          className={`${inputClass} sm:w-44`}
-          value={active}
-          onChange={(event) => {
-            setActive(event.target.value as "" | "true" | "false");
-            setPage(1);
-          }}
-        >
-          <option value="">Todos los estados</option>
-          <option value="true">Activas</option>
-          <option value="false">Inactivas</option>
-        </select>
-      </ListToolbar>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div className="grid gap-4">
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="grid min-w-0 gap-4">
+          <div className="grid gap-4">
+            <PageHeader
+              title="Actividades"
+              createLabel="Nueva actividad"
+              onCreate={() => setCreating((value) => !value)}
+            />
+            <ListToolbar
+              search={search}
+              onSearch={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              pageSize={pageSize}
+              onPageSize={(value) => {
+                setPageSize(value);
+                setPage(1);
+              }}
+            >
+              <select
+                className={`${inputClass} sm:w-44`}
+                value={active}
+                onChange={(event) => {
+                  setActive(event.target.value as "" | "true" | "false");
+                  setPage(1);
+                }}
+              >
+                <option value="">Todos los estados</option>
+                <option value="true">Activas</option>
+                <option value="false">Inactivas</option>
+              </select>
+            </ListToolbar>
+            <div
+              className="flex flex-wrap gap-2"
+              role="tablist"
+              aria-label="Filtrar actividades por tipo"
+            >
+              {([
+                ["", "Todas"],
+                ["casals", "Casals"],
+                ["extraescolares", "Extraescolares"],
+                ["otros", "Otros"],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value || "todas"}
+                  type="button"
+                  role="tab"
+                  aria-selected={categoryGroup === value}
+                  onClick={() => {
+                    setCategoryGroup(value);
+                    setPage(1);
+                  }}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${categoryGroup === value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <Card className="overflow-hidden border-0 shadow-sm ring-1 ring-border/70">
             {query.isLoading ? (
               <LoadingState />
@@ -367,15 +416,26 @@ export function ActivitiesPage({
             </FormPanel>
           )}
         </div>
-        <Card className="min-w-0 overflow-hidden border-0 shadow-sm ring-1 ring-border/70 lg:sticky lg:top-20">
-          <div className="border-b border-border p-4">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <CalendarDays size={17} className="text-primary" />
-              Agenda semanal
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Grupos, profesores y participantes de lunes a viernes.
-            </p>
+        <Card className="min-w-0 overflow-hidden border-0 shadow-sm ring-1 ring-border/70 xl:sticky xl:top-20">
+          <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold">
+                <CalendarDays size={17} className="text-primary" />
+                Agenda semanal
+              </h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Grupos, profesores y participantes de lunes a viernes.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setCreatingGroup(true);
+                createGroupMutation.reset();
+              }}
+            >
+              <Plus size={15} /> Añadir
+            </Button>
           </div>
           {groups.isLoading || teachers.isLoading ? (
             <LoadingState />
@@ -404,19 +464,16 @@ export function ActivitiesPage({
                       <div className="grid gap-2 p-2">
                         {entries.length ? (
                           entries.map(({ group, slot }) => {
-                            const schoolIndex =
-                              schools.data?.items.findIndex(
-                                (school) => school.id === group.schoolId,
-                              ) ?? -1;
                             const school =
-                              schoolIndex >= 0
-                                ? schools.data?.items[schoolIndex]
-                                : undefined;
-                            const schoolColor =
-                              schoolCardColors[
-                                (schoolIndex >= 0 ? schoolIndex : 0) %
-                                  schoolCardColors.length
-                              ];
+                              schools.data?.items.find(
+                                (item) => item.id === group.schoolId,
+                              );
+                            const colorIndex = Array.from(group.name).reduce(
+                              (hash, character) =>
+                                (hash * 31 + character.charCodeAt(0)) >>> 0,
+                              0,
+                            ) % schoolCardColors.length;
+                            const schoolColor = schoolCardColors[colorIndex];
                             return (
                               <article
                                 key={`${group.id}-${slot.startsAt}`}
@@ -534,9 +591,9 @@ export function ActivitiesPage({
       />
       <ActivityGroupEditDialog
         group={editingGroup}
-        open={Boolean(editingGroup)}
-        pending={updateGroupMutation.isPending}
-        error={updateGroupMutation.error?.message}
+        open={Boolean(editingGroup) || creatingGroup}
+        pending={creatingGroup ? createGroupMutation.isPending : updateGroupMutation.isPending}
+        error={creatingGroup ? createGroupMutation.error?.message : updateGroupMutation.error?.message}
         activities={activityOptions.data?.items ?? []}
         teachers={teachers.data?.items ?? []}
         students={students.data?.items ?? []}
@@ -548,11 +605,14 @@ export function ActivitiesPage({
         onOpenChange={(open) => {
           if (!open) {
             setEditingGroup(null);
+            setCreatingGroup(false);
             updateGroupMutation.reset();
+            createGroupMutation.reset();
           }
         }}
         onSubmit={(payload) => {
-          if (editingGroup)
+          if (creatingGroup) createGroupMutation.mutate(payload);
+          else if (editingGroup)
             updateGroupMutation.mutate({ id: editingGroup.id, payload });
         }}
       />
