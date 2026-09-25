@@ -118,9 +118,9 @@ onClick={() => setEditing(teacher)}
 </div>)}
 </div>
 <Pagination
-page={teachers.data.page}
-totalPages={teachers.data.totalPages}
-total={teachers.data.total}
+page={teachers.data?.page ?? page}
+totalPages={teachers.data?.totalPages ?? 1}
+total={teachers.data?.total ?? 0}
 onPage={setPage}
 />
 </> : <EmptyState
