@@ -1,4 +1,11 @@
-import { type FormEvent, useDeferredValue, useState } from "react";
+import {
+  type CSSProperties,
+  type FormEvent,
+  useDeferredValue,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -41,14 +48,39 @@ const weekDays = [
   { value: 5, label: "Viernes" },
 ];
 
-const schoolCardColors = [
-  "border-sky-300 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/30",
-  "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30",
-  "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30",
-  "border-rose-300 bg-rose-50 dark:border-rose-800 dark:bg-rose-950/30",
-  "border-violet-300 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/30",
-  "border-cyan-300 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-950/30",
+const schoolCardAccents = [
+  "#e11d48",
+  "#ea580c",
+  "#f59e0b",
+  "#a16207",
+  "#65a30d",
+  "#16a34a",
+  "#0f766e",
+  "#06b6d4",
+  "#0284c7",
+  "#2563eb",
+  "#4338ca",
+  "#7c3aed",
+  "#c026d3",
+  "#e879f9",
+  "#db2777",
+  "#9f1239",
+  "#92400e",
+  "#475569",
 ];
+
+const getAgendaCategory = (
+  group: ActivityGroup,
+  activities: Activity[],
+): "extraescolares" | "casals" | "particulares" => {
+  const activity = activities.find((item) => item.id === group.activityId);
+  const categoryText = `${activity?.category ?? ""} ${activity?.name ?? ""} ${group.activityName ?? ""}`;
+  if (/casal/i.test(categoryText)) return "casals";
+  if (/particular/i.test(categoryText) || group.scope === "external")
+    return "particulares";
+  if (/extraescolar/i.test(categoryText)) return "extraescolares";
+  return "particulares";
+};
 
 export function ActivitiesPage({
   onNavigate,
@@ -66,6 +98,11 @@ export function ActivitiesPage({
   const [editing, setEditing] = useState<Activity | null>(null);
   const [editingGroup, setEditingGroup] = useState<ActivityGroup | null>(null);
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [agendaCategory, setAgendaCategory] = useState<
+    "all" | "extraescolares" | "casals" | "particulares"
+  >("all");
+  const agendaGridRef = useRef<HTMLDivElement>(null);
+  const agendaCardsRef = useRef(new Map<string, HTMLElement>());
   const deferredSearch = useDeferredValue(search);
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -110,6 +147,44 @@ export function ActivitiesPage({
     queryFn: () =>
       backofficeApi.schools.list({ active: "true", pageSize: 100 }),
   });
+  const scheduledSchoolIds = new Set(
+    (groups.data ?? []).flatMap((group) =>
+      group.schoolId ? [group.schoolId] : [],
+    ),
+  );
+  const scheduledSchools = [...(schools.data?.items ?? [])]
+    .filter((school) => scheduledSchoolIds.has(school.id))
+    .sort((left, right) => left.name.localeCompare(right.name));
+  const schoolColors = new Map(
+    scheduledSchools.map((school, index) => [
+      school.id,
+      schoolCardAccents[index] ?? `hsl(${(index * 137.5) % 360} 75% 48%)`,
+    ]),
+  );
+  useLayoutEffect(() => {
+    const grid = agendaGridRef.current;
+    if (!grid) return;
+
+    const equalizeCardHeights = () => {
+      const cards = [...agendaCardsRef.current.values()];
+      cards.forEach((card) => (card.style.height = "auto"));
+      const tallest = Math.max(
+        0,
+        ...cards.map((card) => card.getBoundingClientRect().height),
+      );
+      if (tallest > 0)
+        cards.forEach((card) => (card.style.height = `${tallest}px`));
+    };
+
+    equalizeCardHeights();
+    const observer = new ResizeObserver(equalizeCardHeights);
+    observer.observe(grid);
+    window.addEventListener("resize", equalizeCardHeights);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", equalizeCardHeights);
+    };
+  }, [agendaCategory, groups.data, schools.data, teachers.data]);
   const mutation = useMutation({
     mutationFn: backofficeApi.activities.create,
     onSuccess: async () => {
@@ -437,13 +512,47 @@ export function ActivitiesPage({
               <Plus size={15} /> Añadir
             </Button>
           </div>
+          <div
+            className="flex flex-wrap gap-2 border-b border-border p-3"
+            role="tablist"
+            aria-label="Filtrar agenda por tipo"
+          >
+            {([
+              ["all", "Todas"],
+              ["extraescolares", "Extraescolares"],
+              ["casals", "Casals"],
+              ["particulares", "Particulares"],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={agendaCategory === value}
+                onClick={() => setAgendaCategory(value)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${agendaCategory === value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {groups.isLoading || teachers.isLoading ? (
             <LoadingState />
           ) : (
             <div className="overflow-x-auto">
-              <div className="grid min-w-[760px] grid-cols-5 divide-x divide-border">
+              <div
+                ref={agendaGridRef}
+                className="grid min-w-[760px] grid-cols-5 divide-x divide-border"
+              >
                 {weekDays.map((day) => {
                   const entries = (groups.data ?? [])
+                    .filter(
+                      (group) =>
+                        agendaCategory === "all" ||
+                        getAgendaCategory(
+                          group,
+                          activityOptions.data?.items ?? [],
+                        ) === agendaCategory,
+                    )
                     .flatMap((group) =>
                       group.schedule
                         .filter((slot) => slot.dayOfWeek === day.value)
@@ -468,16 +577,25 @@ export function ActivitiesPage({
                               schools.data?.items.find(
                                 (item) => item.id === group.schoolId,
                               );
-                            const colorIndex = Array.from(group.name).reduce(
-                              (hash, character) =>
-                                (hash * 31 + character.charCodeAt(0)) >>> 0,
-                              0,
-                            ) % schoolCardColors.length;
-                            const schoolColor = schoolCardColors[colorIndex];
+                            const schoolColor = school
+                              ? schoolColors.get(school.id)
+                              : undefined;
                             return (
                               <article
                                 key={`${group.id}-${slot.startsAt}`}
-                                className={`group relative cursor-pointer rounded-[4px] border p-3 shadow-sm ${schoolColor}`}
+                                ref={(node) => {
+                                  const key = `${group.id}-${slot.startsAt}`;
+                                  if (node) agendaCardsRef.current.set(key, node);
+                                  else agendaCardsRef.current.delete(key);
+                                }}
+                                className={`group relative cursor-pointer rounded-[4px] border p-3 shadow-sm ${schoolColor === undefined ? "border-border bg-card" : "agenda-school-card"}`}
+                                style={
+                                  schoolColor === undefined
+                                    ? undefined
+                                    : ({ "--agenda-school-accent": schoolColor } as CSSProperties & {
+                                        "--agenda-school-accent": string;
+                                      })
+                                }
                                 role="button"
                                 tabIndex={0}
                                 onClick={() => setEditingGroup(group)}
