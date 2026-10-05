@@ -1,0 +1,8 @@
+# Bun runs the TypeScript sources directly (workspace packages export .ts files).
+FROM oven/bun:1.4-slim
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile --production
+ENV NODE_ENV=production PORT=3001
+EXPOSE 3001
+CMD ["bun", "apps/api/src/index.ts"]

@@ -1,0 +1,14 @@
+FROM oven/bun:1.4 AS build
+WORKDIR /app
+COPY . .
+RUN bun install --frozen-lockfile
+# Vite inlines these at build time: define them as build variables in Coolify.
+ARG BASE_PATH=/
+ARG VITE_API_URL
+ARG VITE_ORGANIZATION_ID
+RUN cd apps/web && bun run build
+
+FROM nginx:1.27-alpine
+COPY docker/nginx-spa.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/apps/web/dist /usr/share/nginx/html
+EXPOSE 80
