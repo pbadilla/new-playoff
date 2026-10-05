@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
+    "build:web": "cd apps/web && bun run build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:changed": "bun scripts/lint-changed.ts",
