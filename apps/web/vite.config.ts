@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  base: '/playrg360/',
+  base: process.env.BASE_PATH ?? '/playrg360/',
 
   plugins: [react(), tailwindcss()],
 
