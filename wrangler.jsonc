@@ -1,9 +1,11 @@
 // Cloudflare Workers (static assets only), deployed by Workers Builds from GitHub.
+// Served at https://tools.rollergrind360.com/rollergrindOn — build with `bun run build:cloudflare`.
 {
   "name": "rg360-playoff",
   "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "tools.rollergrind360.com/rollergrindOn*", "zone_name": "rollergrind360.com" }],
   "assets": {
-    "directory": "./apps/web/dist",
+    "directory": "./.cloudflare",
     "not_found_handling": "single-page-application"
   }
 }

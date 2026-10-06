@@ -5,3 +5,6 @@ dist
 .turbo
 coverage
 data/**
+
+# Cloudflare build output
+.cloudflare
