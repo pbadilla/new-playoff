@@ -1,7 +1,20 @@
-import { createContext, type ReactNode,useContext, useEffect, useState } from 'react'
-type Theme='light'|'dark'
-const ThemeContext=createContext({theme:'light' as Theme,toggle:()=>{}})
-export function ThemeProvider({children}:{children:ReactNode}){const [theme,setTheme]=useState<Theme>(()=>(localStorage.getItem('theme') as Theme)||'light');useEffect(()=>{document.documentElement.classList.toggle('dark',theme==='dark');localStorage.setItem('theme',theme)},[theme]);return <ThemeContext.Provider value={{theme,toggle:()=>setTheme(t=>t==='light'?'dark':'light')}}>
-{children}
-</ThemeContext.Provider>}
-export const useTheme=()=>useContext(ThemeContext)
+import { createContext, type ReactNode, useContext, useEffect } from "react";
+
+import { readSuiteTheme } from "../lib/suite";
+
+type Theme = "light" | "dark";
+
+// The theme is a suite-wide preference chosen in the RG360 landing.
+const ThemeContext = createContext<{ theme: Theme }>({ theme: "light" });
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const theme = readSuiteTheme();
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
+  return (
+    <ThemeContext.Provider value={{ theme }}>{children}</ThemeContext.Provider>
+  );
+}
+
+export const useTheme = () => useContext(ThemeContext);

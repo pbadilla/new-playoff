@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   Activity,
@@ -9,16 +9,15 @@ import {
   CircleDollarSign,
   Command as CommandIcon,
   LayoutDashboard,
+  LayoutGrid,
   Menu,
   MessageCircle,
-  Moon,
   MoreHorizontal,
   Pencil,
   School,
   Search,
   Settings,
   Star,
-  Sun,
   Trophy,
   UserPlus,
   UserRound,
@@ -29,13 +28,15 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
+import logo from "../assets/logo-rg360.png";
 import { ActivitiesPage } from "../features/activities/activities-page";
+import { CalendarPage } from "../features/calendar/calendar-page";
 import { CommunicationPage } from "../features/communication/communication-page";
 import { FinancePage } from "../features/finance/finance-page";
 import { SchoolsPage } from "../features/schools/schools-page";
 import { StudentsPage } from "../features/students/students-page";
 import { TeachersPage } from "../features/teachers/teachers-page";
-import { useTheme } from "./theme-provider";
+import { SUITE_HOME_URL } from "../lib/suite";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import {
@@ -52,13 +53,17 @@ const nav = [
   ["Alumnos", Users],
   ["Colegios", School],
   ["Profesores", UserRound],
-  ["Finanzas", WalletCards],
+  ["Calendario", CalendarDays],
   ["Comunicación", MessageCircle],
-  ["Actividades", CalendarDays],
-  ["Más", MoreHorizontal],
+  ["Actividades", Activity],
 ] as const;
 
-type Section = (typeof nav)[number][0];
+// Secondary sections, grouped under the "Más" menu.
+const moreNav = [["Finanzas", WalletCards]] as const;
+
+const allSections = [...nav, ...moreNav];
+
+type Section = (typeof allSections)[number][0];
 
 const stats = [
   {
@@ -116,7 +121,19 @@ export function Dashboard() {
   const [active, setActive] = useState<Section>("Dashboard");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
-  const { theme, toggle } = useTheme();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const inMore = moreNav.some(([label]) => label === active);
+
+  // Close the "Más" menu when clicking anywhere else.
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onMouseDown = (event: MouseEvent) => {
+      if (!moreRef.current?.contains(event.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [moreOpen]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -128,6 +145,7 @@ export function Dashboard() {
       if (event.key === "Escape") {
         setCommandOpen(false);
         setMobileOpen(false);
+        setMoreOpen(false);
       }
     };
 
@@ -139,60 +157,105 @@ export function Dashboard() {
     setActive(section);
     setMobileOpen(false);
     setCommandOpen(false);
+    setMoreOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-muted/45 text-foreground">
-      <header className="sticky top-0 z-40 bg-primary text-primary-foreground shadow-sm">
-        <div className="mx-auto flex h-14 max-w-[1500px] items-center gap-2 px-3 lg:px-6">
+      {/* Suite header (same design as the RG360 landing). Account, language, theme and sign-out live in the landing. */}
+      <header className="sticky top-0 z-40 border-b border-border bg-card text-foreground">
+        <div className="mx-auto flex h-16 max-w-[1500px] items-center gap-3 px-3 lg:px-6">
+          <a
+            href={SUITE_HOME_URL}
+            className="flex shrink-0 items-center rounded-[4px] p-1 hover:bg-muted"
+            aria-label="Volver a las aplicaciones RG360"
+            title="Aplicaciones RG360"
+          >
+            <img src={logo} alt="RG360" className="h-7 w-auto dark:invert" />
+          </a>
+          <span
+            className="hidden h-6 w-px bg-border sm:block"
+            aria-hidden="true"
+          />
           <button
-            className="mr-2 flex shrink-0 items-center gap-2 rounded-[4px] p-1.5 hover:bg-white/10"
+            className="mr-1 hidden shrink-0 rounded-[4px] px-1 text-sm font-bold tracking-tight hover:text-primary sm:block"
             onClick={() => goTo("Dashboard")}
           >
-            <span className="grid size-8 place-items-center rounded-full bg-white text-violet-700">
-              <Trophy size={17} />
-            </span>
-            <span className="hidden text-base font-bold tracking-tight sm:block">
-              PlayRG360
-            </span>
+            PlayRG360
           </button>
 
           <button
-            className="hidden h-9 w-52 items-center gap-2 rounded-[4px] bg-white/95 px-3 text-xs text-slate-500 shadow-sm md:flex"
+            className="hidden h-9 w-48 items-center gap-2 rounded-[4px] border border-border bg-muted/50 px-3 text-xs text-muted-foreground hover:bg-muted md:flex"
             onClick={() => setCommandOpen(true)}
           >
             <Search size={14} />
             <span>Buscar</span>
-            <kbd className="ml-auto flex items-center gap-1 text-[10px] text-slate-400">
+            <kbd className="ml-auto flex items-center gap-1 text-[10px]">
               <CommandIcon size={10} />K
             </kbd>
           </button>
 
           <nav
-            className="ml-2 hidden h-full items-center xl:flex"
+            className="ml-auto hidden h-full items-center xl:flex"
             aria-label="Navegación principal"
           >
             {nav.slice(1).map(([label, Icon]) => (
               <button
                 key={label}
-                className={`relative flex h-full items-center gap-1.5 px-3 text-xs font-medium transition hover:bg-white/10 ${active === label ? "bg-white/12" : "text-white/90"}`}
+                className={`relative flex h-full items-center gap-1.5 px-3 text-sm font-semibold transition hover:bg-muted ${active === label ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                 onClick={() => goTo(label)}
               >
-                <Icon size={14} />
+                <Icon size={15} />
                 {label}
                 {active === label && (
                   <motion.span
                     layoutId="top-nav"
-                    className="absolute inset-x-3 bottom-0 h-0.5 bg-white"
+                    className="absolute inset-x-3 bottom-0 h-0.5 bg-primary"
                   />
                 )}
               </button>
             ))}
+            <div ref={moreRef} className="relative h-full">
+              <button
+                className={`relative flex h-full items-center gap-1.5 px-3 text-sm font-semibold transition hover:bg-muted ${inMore || moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                onClick={() => setMoreOpen((open) => !open)}
+              >
+                <MoreHorizontal size={15} />
+                {inMore ? active : "Más"}
+                <ChevronDown size={12} />
+                {inMore && (
+                  <motion.span
+                    layoutId="top-nav"
+                    className="absolute inset-x-3 bottom-0 h-0.5 bg-primary"
+                  />
+                )}
+              </button>
+              {moreOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-1 min-w-44 overflow-hidden rounded-[4px] border border-border bg-card py-1 text-foreground shadow-lg"
+                >
+                  {moreNav.map(([label, Icon]) => (
+                    <button
+                      key={label}
+                      role="menuitem"
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted ${active === label ? "font-semibold text-primary" : ""}`}
+                      onClick={() => goTo(label)}
+                    >
+                      <Icon size={15} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
 
-          <div className="ml-auto flex items-center gap-0.5">
+          <div className="ml-auto flex items-center gap-1 xl:ml-2">
             <Button
-              className="text-white hover:bg-white/10 hover:text-white md:hidden"
+              className="text-muted-foreground md:hidden"
               variant="ghost"
               size="icon"
               aria-label="Buscar"
@@ -201,7 +264,7 @@ export function Dashboard() {
               <Search size={17} />
             </Button>
             <Button
-              className="text-white hover:bg-white/10 hover:text-white"
+              className="text-muted-foreground"
               variant="ghost"
               size="icon"
               aria-label="Favoritos"
@@ -209,7 +272,7 @@ export function Dashboard() {
               <Star size={17} />
             </Button>
             <Button
-              className="text-white hover:bg-white/10 hover:text-white"
+              className="text-muted-foreground"
               variant="ghost"
               size="icon"
               aria-label="Notificaciones"
@@ -217,19 +280,7 @@ export function Dashboard() {
               <Bell size={17} />
             </Button>
             <Button
-              className="hidden text-white hover:bg-white/10 hover:text-white sm:inline-flex"
-              variant="ghost"
-              size="icon"
-              aria-label={`Activar modo ${theme === "dark" ? "claro" : "oscuro"}`}
-              onClick={toggle}
-            >
-              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-            </Button>
-            <button className="ml-1 grid size-8 place-items-center rounded-full bg-amber-100 text-amber-800 ring-2 ring-white/50">
-              <UserRound size={17} />
-            </button>
-            <Button
-              className="text-white hover:bg-white/10 hover:text-white xl:hidden"
+              className="text-muted-foreground xl:hidden"
               variant="ghost"
               size="icon"
               aria-label="Abrir menú"
@@ -285,15 +336,27 @@ export function Dashboard() {
                     {label}
                   </button>
                 ))}
+                <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Más
+                </p>
+                {moreNav.map(([label, Icon]) => (
+                  <button
+                    key={label}
+                    className={`flex w-full items-center gap-3 rounded-[4px] px-3 py-2.5 text-sm ${active === label ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                    onClick={() => goTo(label)}
+                  >
+                    <Icon size={17} />
+                    {label}
+                  </button>
+                ))}
               </nav>
-              <Button
-                className="mt-5 w-full"
-                variant="outline"
-                onClick={toggle}
+              <a
+                href={SUITE_HOME_URL}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-[4px] border border-border px-3 py-2 text-sm font-medium hover:bg-muted"
               >
-                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-                Cambiar tema
-              </Button>
+                <LayoutGrid size={16} />
+                Aplicaciones RG360
+              </a>
             </motion.aside>
           </motion.div>
         )}
@@ -512,8 +575,10 @@ export function Dashboard() {
           <StudentsPage />
         ) : active === "Comunicación" ? (
           <CommunicationPage />
+        ) : active === "Calendario" ? (
+          <CalendarPage onNavigate={goTo} />
         ) : active === "Actividades" ? (
-          <ActivitiesPage onNavigate={goTo} />
+          <ActivitiesPage />
         ) : active === "Finanzas" ? (
           <FinancePage />
         ) : (
@@ -548,14 +613,14 @@ export function Dashboard() {
                 <CommandList>
                   <CommandEmpty>No se encontraron resultados.</CommandEmpty>
                   <CommandGroup heading="Navegación">
-                    {nav.map(([label, Icon]) => (
+                    {allSections.map(([label, Icon]) => (
                       <CommandItem
                         key={label}
                         value={label}
                         onSelect={() => goTo(label)}
                       >
                         <Icon size={17} />
-                        <span>Ir a{label}</span>
+                        <span>Ir a {label}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
