@@ -127,7 +127,7 @@ function CardPayment({ number, name, expiry, onNumber, onName, onExpiry }: { num
 <h2 className="font-semibold">
 Tarjeta bancaria
 </h2>
-    <div className="my-5 flex aspect-[1.62/1] max-h-56 flex-col justify-between rounded-[4px] bg-gradient-to-br from-violet-700 via-violet-600 to-indigo-800 p-5 text-white shadow-xl">
+    <div className="my-5 flex aspect-[1.62/1] max-h-56 flex-col justify-between rounded-[4px] bg-gradient-to-br from-violet-700 via-violet-600 to-violet-900 p-5 text-white shadow-xl">
 <div className="flex items-start justify-between">
 <span className="text-xs font-semibold uppercase tracking-[.2em]">
 RG360

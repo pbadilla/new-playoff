@@ -59,7 +59,7 @@ value={option.value}
 </select>
 </label>
 {method === 'card' && <>
-<div className="rounded-[4px] bg-gradient-to-br from-violet-700 to-indigo-800 p-5 text-white shadow-lg">
+<div className="rounded-[4px] bg-gradient-to-br from-violet-700 to-violet-900 p-5 text-white shadow-lg">
 <p className="text-xs uppercase tracking-[.2em]">
 Tarjeta tokenizada
 </p>
